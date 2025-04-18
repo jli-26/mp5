@@ -1,13 +1,14 @@
 import { redirect } from 'next/navigation'
 import getCollection from '@/db'
 
-export default async function AliasRedirect({
-  params
-}: {
-  params: { alias: string }
-}) {
+type AliasRedirectProps = {
+  params: Promise<{ alias: string }>;
+}
+
+export default async function AliasRedirect({ params }: AliasRedirectProps) {
+  const resolvedParams = await params; 
   const urlsCollection = await getCollection('urls')
-  const entry = await urlsCollection.findOne({ alias: params.alias })
+  const entry = await urlsCollection.findOne({ alias: resolvedParams.alias })
 
   if (!entry) {
     return (
