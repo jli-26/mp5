@@ -10,9 +10,14 @@ if (!MONGO_URI) {
 const DB_NAME = "mp5";
 export const POST_COLLECTION = "urls";
 
+// change suggest by: https://coreui.io/blog/what-is-globalthis-in-javascript/
+declare global {
+  var mongoClient: MongoClient | undefined;
+  var mongoDb: Db | undefined;
+}
 
-let client: MongoClient | null = null;
-let db : Db | null = null;
+let client: MongoClient | null = global.mongoClient || null;
+let db : Db | null = globalThis.mongoDb || null;
 
 async function connect(){
     if (!client) {
@@ -23,8 +28,15 @@ async function connect(){
 }
 
 export default async function getCollection(collectionName: string): Promise<Collection> {
-    if (!db) {
-      db = await connect();
-    }
-    return db.collection(collectionName);
+  if (!client || !db) {
+    client = new MongoClient(MONGO_URI);
+    await client.connect();
+    db = client.db(DB_NAME);
+
+    // Store in globalThis so it persists across function calls
+    globalThis.mongoClient = client;
+    globalThis.mongoDb = db;
   }
+
+  return db.collection(collectionName);
+}
