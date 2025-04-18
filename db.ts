@@ -10,33 +10,36 @@ if (!MONGO_URI) {
 const DB_NAME = "mp5";
 export const POST_COLLECTION = "urls";
 
-// change suggest by: https://coreui.io/blog/what-is-globalthis-in-javascript/
+//Google: https://coreui.io/blog/what-is-globalthis-in-javascript/
 declare global {
   var mongoClient: MongoClient | undefined;
   var mongoDb: Db | undefined;
 }
 
-let client: MongoClient | null = global.mongoClient || null;
-let db : Db | null = globalThis.mongoDb || null;
+let client: MongoClient | undefined = global.mongoClient;
+let db: Db | undefined = global.mongoDb;
 
-async function connect(){
-    if (!client) {
-        client = new MongoClient(MONGO_URI);
-        await client.connect();
-    }
-    return client.db(DB_NAME);
+async function connect(): Promise<Db> {
+  if (!client) {
+    console.log('Connecting to MongoDB...');
+    client = new MongoClient(MONGO_URI);
+    await client.connect();
+    global.mongoClient = client;
+    db = client.db(DB_NAME);
+    global.mongoDb = db;
+    console.log('MongoDB connected');
+  }
+  return db!;
 }
 
 export default async function getCollection(collectionName: string): Promise<Collection> {
-  if (!client || !db) {
-    client = new MongoClient(MONGO_URI);
-    await client.connect();
-    db = client.db(DB_NAME);
-
-    // Store in globalThis so it persists across function calls
-    globalThis.mongoClient = client;
-    globalThis.mongoDb = db;
+  try {
+    if (!db) {
+      await connect(); 
+    }
+    return db!.collection(collectionName); 
+  } catch (error) {
+    console.error('Error while getting collection:', error);
+    throw new Error('Could not get the MongoDB collection');
   }
-
-  return db.collection(collectionName);
 }
