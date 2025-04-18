@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const { alias, url } = await req.json();
     if (!isValidUrl(url)) {
       return new Response(
-        JSON.stringify({ error: 'You have entered an invalid URL please enter a valid URL.' }),
+        JSON.stringify({ error: 'You have entered an invalid URL, please enter a valid URL.' }),
       );
     }
 
@@ -23,15 +23,22 @@ export async function POST(req: Request) {
     const existing = await urlsCollection.findOne({ alias });
     if (existing) {
       return new Response(
-        JSON.stringify({ error: 'Alias has already taken! Please try another one.' })
+        JSON.stringify({ error: 'Alias has already been taken! Please try another one.' })
       );
     }
 
     await urlsCollection.insertOne({ alias, url });
 
     return new Response(
-      JSON.stringify({ shortUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/${alias}` })    );
-  } catch (error) {
+      JSON.stringify({ shortUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/${alias}` })
+    );
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error processing request:', error.message);  
+    } else {
+      console.error('Unexpected error:', error); 
+    }
+    
     return new Response(
       JSON.stringify({ error: 'An unexpected error occurred. Please try again' })
     );
